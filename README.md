@@ -117,9 +117,11 @@ GitHub Actions also runs production-oriented Django deployment checks. Passing s
 - [Security status](docs/security.md)
 - [Recovery status](docs/recovery.md)
 
-## Platform-contract note
+## Platform Contract
 
-The current production-readiness standard refers to a repository-owned `goreecloud.platform.yaml`, while the current GoreeCloud Platform Improvement Task List still records definition of the shared Platform Contract and manifest schema as unfinished. Metrics therefore does not invent a competing manifest schema in this revision. That governance discrepancy remains explicit until an authoritative implementation contract is available.
+The central GoreeCloud Platform Contract is now defined at schema version `0.2`. This repository carries a root `goreecloud.platform.yaml` declaration and an immutable-pinned reusable validation workflow for that shared contract.
+
+The manifest records Metrics as Development and `nonconformant`; it preserves blocked or migration-required Integral Platform System relationships and contains no fabricated acceptance-test or release evidence. Manifest adoption therefore does not establish Stable qualification, production deployment, platform-system acceptance, or production readiness.
 
 ## License
 

@@ -26,11 +26,13 @@ Additional application relationships:
 
 They do not establish Privacy Shield, Wardveil Security, Identity, Mesh, Everkeep, Manager, or platform-wide production acceptance.
 
-## Machine-readable platform declaration discrepancy
+## Machine-readable Platform Contract declaration
 
-The current Application and Service Production Readiness standard describes `goreecloud.platform.yaml` as a repository-owned conformance record. The current GoreeCloud Platform Improvement Task List still marks definition of the shared Platform Contract and standard machine-readable manifest as unfinished.
+The shared GoreeCloud Platform Contract is now centrally defined at schema version `0.2`. Metrics therefore carries a repository-root `goreecloud.platform.yaml` and validates it through an immutable-pinned central reusable workflow.
 
-Metrics therefore has no local `goreecloud.platform.yaml` in this revision. Creating an application-specific schema would create a competing source of truth. The platform governance discrepancy must be resolved at the shared contract authority before Metrics can declare conformance through that file.
+The manifest deliberately preserves the same fail-closed state as this record: Privacy Shield and Wardveil Security are migration-required because local groundwork exists without accepted platform integration; Manager, Everkeep, Glaze UI, Mesh, and Identity remain blocked. It contains no acceptance-test or release evidence and declares overall conformance `nonconformant`.
+
+Manifest adoption establishes machine-readable contract participation only. It does not establish production readiness, Stable eligibility, or producer-system acceptance.
 
 ## Overall state
 
