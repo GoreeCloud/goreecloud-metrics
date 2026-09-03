@@ -4,23 +4,23 @@ GoreeCloud Metrics is the in-development first-party GoreeCloud application for 
 
 ## Current status
 
-**Development foundation — not Stable, not production-ready, and not yet a monitoring replacement.**
+**Development source — not Stable, not production-ready, and not yet a monitoring replacement.**
 
-The repository currently implements a native server/API foundation plus the first Metrics-owned system and agent identity primitives:
+Source version `0.1.0-dev.2` adds the first end-to-end Metrics-owned host telemetry path:
 
-- Django 5.2 application skeleton;
-- bounded `GET /livez/` liveness endpoint;
-- database-aware `GET /readyz/` readiness endpoint;
-- bounded `GET /api/v1/status/` source/lifecycle identity endpoint;
-- fail-closed runtime configuration validation;
-- baseline HTTP hardening;
-- durable development models for monitored systems, agent identities, one-time enrollment records, and agent credential metadata;
-- one-time enrollment issuance/consumption primitives that persist only password hashes, never returned plaintext secrets;
-- agent revocation that preserves history and revokes active credential records;
-- local management commands for registering systems and issuing one-time enrollment secrets;
-- source-level tests, migrations, and CI repository checks.
+- Django 5.2 server/API foundation with bounded liveness, readiness, and source-status endpoints;
+- durable monitored-system, Metrics-local agent identity, one-time enrollment, credential, and telemetry snapshot records;
+- `POST /api/v1/agents/enroll/` for one-time development agent enrollment;
+- `POST /api/v1/agents/telemetry/` for authenticated, strictly validated telemetry intake;
+- a native Python development Metrics Agent that initiates outbound communication and collects a minimized Linux core sample from `/proc`, `statvfs`, and load-average interfaces;
+- core CPU/load, memory/swap, root-filesystem capacity, and aggregate non-loopback network counters;
+- one-time enrollment and agent credential material stored server-side only as password hashes;
+- owner-only (`0600`) local agent state, with HTTPS required by the agent for non-loopback servers;
+- strict request/body/schema limits, sample timestamp bounds, duplicate sample rejection, revocation enforcement, and paused/retired-system enforcement;
+- development telemetry retention bounded to 1–2160 hours, defaulting to 168 hours, with pruning during ingestion and an explicit prune command;
+- migrations, negative-path tests, and CI validation.
 
-There is still **no network agent-enrollment endpoint, deployed Metrics Agent, telemetry ingestion, dashboard, historical metrics engine, resource alerts, container monitoring, hardware collectors, or production platform integration**.
+This source does **not** yet provide a production deployment, accepted Metrics Agent package/service, user-facing dashboard, authorized telemetry read API, container/GPU/storage-health collectors, alerting, production metrics database, GoreeCloud Identity integration, Wardveil Security acceptance, Privacy Shield adapter acceptance, Everkeep recovery, Mesh integration, or Glaze UI surface.
 
 ## Development setup
 
@@ -28,7 +28,7 @@ Requirements:
 
 - Python 3.14
 
-Create an isolated environment, install the exact development dependency, and run the server with explicit development configuration:
+Create an isolated environment and run the server with explicit development configuration:
 
 ```bash
 python -m venv .venv
@@ -38,39 +38,70 @@ export PYTHONPATH=src
 export METRICS_ENV=development
 export METRICS_SECRET_KEY='development-only-change-me'
 export METRICS_ALLOWED_HOSTS='localhost,127.0.0.1,[::1]'
+export METRICS_TELEMETRY_RETENTION_HOURS=168
 python manage.py migrate
 python manage.py runserver
 ```
 
-The process intentionally refuses to start when `METRICS_ENV` or `METRICS_SECRET_KEY` is not explicitly configured.
+SQLite remains a development/test persistence dependency only.
 
-Run source validation with:
+## Development agent flow
+
+Register a system and issue a short-lived one-time enrollment secret:
+
+```bash
+python manage.py register_system metrics-node-01 --role infrastructure --environment development
+python manage.py issue_agent_enrollment <system-uuid> --ttl-minutes 15
+```
+
+On the monitored Linux system, use the one-time secret through the environment or interactive prompt rather than a command-line argument:
+
+```bash
+export PYTHONPATH=src
+export METRICS_ENROLLMENT_SECRET='<one-time-secret>'
+python -m metrics_agent enroll \
+  --server-url http://127.0.0.1:8000 \
+  --enrollment-id <enrollment-uuid>
+unset METRICS_ENROLLMENT_SECRET
+```
+
+Loopback HTTP is permitted only for development. The agent refuses non-loopback HTTP and requires HTTPS for remote servers.
+
+Submit one sample:
+
+```bash
+python -m metrics_agent once
+```
+
+Or run the development collection loop:
+
+```bash
+python -m metrics_agent run --interval-seconds 30
+```
+
+The agent state file defaults to `~/.local/state/goreecloud/metrics-agent/state.json` and is required to remain owner-only. The current file-based credential storage is a Development mechanism, not an accepted production secret-management design.
+
+Prune snapshots older than the configured retention window, including during idle development periods:
+
+```bash
+python manage.py prune_telemetry
+```
+
+## Validation
 
 ```bash
 export PYTHONPATH=src
 export METRICS_ENV=test
 export METRICS_SECRET_KEY='test-only-key'
 python scripts/validate_repository.py
+python -m compileall -q manage.py src tests scripts
 python manage.py makemigrations --check --dry-run
+python manage.py migrate --noinput
 python manage.py check
-python manage.py test tests
+python manage.py test tests -v 2
 ```
 
-## Development-only system and enrollment flow
-
-Register a system record locally:
-
-```bash
-python manage.py register_system metrics-node-01 --role infrastructure --environment development
-```
-
-Issue a bounded one-time enrollment secret for that system UUID:
-
-```bash
-python manage.py issue_agent_enrollment <system-uuid> --ttl-minutes 15
-```
-
-The enrollment secret is displayed once. The database stores only a password hash. Treat the displayed value as sensitive and transmit it only through an approved secure channel. No network enrollment transport exists yet, so these commands are development/operator primitives rather than a complete deployable enrollment workflow.
+GitHub Actions also runs production-oriented Django deployment checks. Passing source CI does not establish deployment, security-integration, recovery, or production acceptance.
 
 ## Documentation
 
@@ -81,15 +112,14 @@ The enrollment secret is displayed once. The database stores only a password has
 - [Branding](BRANDING.md)
 - [User manual](USER-MANUAL.md)
 - [Architecture](docs/architecture.md)
+- [Agent protocol](docs/agent-protocol.md)
 - [Platform integration status](docs/platform-integration-status.md)
 - [Security status](docs/security.md)
 - [Recovery status](docs/recovery.md)
 
-## Platform status
+## Platform-contract note
 
-GoreeCloud Metrics is required to integrate substantively with current GoreeCloud platform systems. Those integrations are **not** implied by the local system/agent domain foundation. Glaze UI 2.2.0 is the required current Stable UI target, but no user-facing Metrics UI exists yet. Wardveil Security, Privacy Shield, Everkeep, GoreeCloud Identity, and GoreeCloud Mesh integration remain unimplemented and therefore block any platform-conformance or production-readiness claim.
-
-The shared machine-readable GoreeCloud platform manifest/schema is not yet treated as an approved contract, so this repository does not invent a local `goreecloud.platform.yaml` format.
+The current production-readiness standard refers to a repository-owned `goreecloud.platform.yaml`, while the current GoreeCloud Platform Improvement Task List still records definition of the shared Platform Contract and manifest schema as unfinished. Metrics therefore does not invent a competing manifest schema in this revision. That governance discrepancy remains explicit until an authoritative implementation contract is available.
 
 ## License
 

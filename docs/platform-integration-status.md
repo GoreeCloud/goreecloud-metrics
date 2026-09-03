@@ -1,27 +1,39 @@
-# Platform Integration Status
+# GoreeCloud Metrics — Platform Integration Status
 
-This record is intentionally fail-closed. A required GoreeCloud platform integration is listed as implemented only after application-specific source and validation evidence exists.
+This record is intentionally fail-closed. An Integral Platform System is listed as implemented only when Metrics-specific source and validation evidence supports that claim.
 
-| Platform system | Requirement | Current Metrics state |
-| --- | --- | --- |
-| GoreeCloud Manager | Limited read-only high-level consumer | Not implemented |
-| Privacy Shield | Telemetry collection, retention, visibility, and sharing governance | Not implemented |
-| Wardveil Security | Security contract and application protections | Not implemented; only project-local baseline HTTP/configuration hardening and local enrollment-secret lifecycle controls exist |
-| Everkeep | Backup, restoration, continuity, and recovery | Not implemented |
-| Glaze UI | Current Stable 2.2.0 for user-facing UI | Target recorded; user-facing Metrics UI not implemented yet |
-| GoreeCloud Mesh | Discovery, relationships, events, dependency context | Not implemented |
-| GoreeCloud Identity | User/service/agent identity and authorization integration where applicable | Not implemented; Metrics-local agent identity records are not Identity integration |
+Current source version: `0.1.0-dev.2`.
 
-Additional planned product integrations such as GoreeCloud Notify, Inventory, and Monitor remain unimplemented.
+| System | Applicability | Current Metrics status | Production gate |
+| --- | --- | --- | --- |
+| GoreeCloud Manager | Applicable for approved high-level operational visibility | Not implemented | Open |
+| Privacy Shield | Applicable to telemetry minimization, retention, metadata, diagnostics, access, deletion/export posture | Application-local minimization and bounded Development retention implemented; no approved adapter/contract validation or acceptance | Open |
+| Wardveil Security | Applicable to agent authentication, credential protection, transport, input validation, exposure, audit, dependency/security state | Application-local fail-closed controls implemented; no Wardveil integration or acceptance | Open |
+| Everkeep | Applicable to application/configuration/database/required-history recovery and secret-recovery procedures | Not implemented | Open |
+| Glaze UI | Applicable to future user/admin surfaces | No user-facing Metrics UI exists | Open |
+| GoreeCloud Mesh | Applicable to discovery, platform identity, relationships, capabilities, dependencies, and events | Not implemented; `platform_identity` is only a local future reference | Open |
+| GoreeCloud Identity | Applicable to user/admin/service/device/agent identity, authentication, and authorization | Not implemented; Metrics-local agent credentials are not GoreeCloud Identity | Open |
 
-## Local agent identity boundary
+Additional application relationships:
 
-Metrics now has development-level monitored-system records, a Metrics-local one-agent-per-system identity model, hashed one-time enrollment records, hashed agent credential metadata, and revocation primitives. These are application-owned fail-closed foundations only. They do not prove GoreeCloud Identity federation, Wardveil protection, Mesh registration, secure network transport, or deployed-agent authentication.
+- GoreeCloud Notify: planned for delivery of Metrics-generated resource alerts; not implemented.
+- GoreeCloud Inventory: planned for durable asset/resource relationships; not implemented.
+- GoreeCloud Monitor: planned contextual correlation while preserving independent availability-monitoring authority; not implemented.
 
-## Platform manifest
+## Current source controls must not be upgraded into platform claims
 
-No `goreecloud.platform.yaml` is present. The shared GoreeCloud machine-readable platform declaration/schema is still a platform-level planned capability and is not treated here as an approved contract.
+`0.1.0-dev.2` implements a minimized telemetry schema, bounded retention, local credential hashing/revocation, strict input validation, non-loopback HTTPS enforcement in the Development agent, and production-configuration rejection of insecure machine requests. These facts may be described as Metrics application behavior only.
 
-## Release boundary
+They do not establish Privacy Shield, Wardveil Security, Identity, Mesh, Everkeep, Manager, or platform-wide production acceptance.
 
-This repository is development-only. The states above block any claim of Stable, production-ready, platform-conforming, or fully integrated Metrics behavior.
+## Machine-readable platform declaration discrepancy
+
+The current Application and Service Production Readiness standard describes `goreecloud.platform.yaml` as a repository-owned conformance record. The current GoreeCloud Platform Improvement Task List still marks definition of the shared Platform Contract and standard machine-readable manifest as unfinished.
+
+Metrics therefore has no local `goreecloud.platform.yaml` in this revision. Creating an application-specific schema would create a competing source of truth. The platform governance discrepancy must be resolved at the shared contract authority before Metrics can declare conformance through that file.
+
+## Overall state
+
+Platform conformance: **not accepted**.  
+Production readiness: **not accepted**.  
+Stable eligibility: **blocked**.
