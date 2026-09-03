@@ -1,0 +1,164 @@
+schema_version: '0.2'
+
+component:
+  type: application
+  id: goreecloud-metrics
+  product_name: GoreeCloud Metrics
+  repository: GoreeCloud/goreecloud-metrics
+
+lifecycle: development
+version: 0.1.0-dev.2
+
+supported_platforms:
+  - linux
+
+api:
+  versions:
+    - v1
+  endpoints:
+    - name: liveness
+      url: /livez/
+      purpose: Report process liveness without disclosing dependency detail.
+    - name: readiness
+      url: /readyz/
+      purpose: Report database-aware readiness without exposing sensitive dependency detail.
+    - name: service-status
+      url: /api/v1/status/
+      purpose: Report bounded product, source, lifecycle, and API-version identity.
+    - name: agent-enrollment
+      url: /api/v1/agents/enroll/
+      purpose: Consume a short-lived one-time Development enrollment credential and return the initial Metrics-local agent credential once.
+    - name: telemetry-ingestion
+      url: /api/v1/agents/telemetry/
+      purpose: Accept one authenticated and strictly bounded Development telemetry sample.
+
+platform_systems:
+  manager:
+    result: applicable-blocked
+    version: null
+    evidence:
+      - SPECIFICATIONS.md
+      - docs/platform-integration-status.md
+    notes: GoreeCloud Manager read-only operational visibility is applicable but no Manager integration or acceptance is implemented.
+  privacy_shield:
+    result: applicable-migration-required
+    version: null
+    evidence:
+      - SPECIFICATIONS.md
+      - docs/platform-integration-status.md
+      - docs/security.md
+    notes: Metrics implements application-local telemetry minimization and bounded Development retention, but no approved Privacy Shield adapter, contract validation, or acceptance exists.
+  wardveil_security:
+    result: applicable-migration-required
+    version: null
+    evidence:
+      - SPECIFICATIONS.md
+      - docs/platform-integration-status.md
+      - docs/security.md
+    notes: Metrics implements application-local fail-closed credential, transport, validation, and exposure controls, but no Wardveil Security integration or acceptance exists.
+  everkeep:
+    result: applicable-blocked
+    version: null
+    evidence:
+      - SPECIFICATIONS.md
+      - docs/platform-integration-status.md
+      - docs/recovery.md
+    notes: Application configuration, system and agent records, required telemetry history, and secret-recovery procedures require an Everkeep recovery model; none is implemented or accepted.
+  glaze_ui:
+    result: applicable-blocked
+    version: null
+    evidence:
+      - README.md
+      - SPECIFICATIONS.md
+      - docs/platform-integration-status.md
+    notes: A user and administrative Metrics surface is planned and therefore Glaze UI is applicable, but no user-facing Metrics UI currently exists.
+  mesh:
+    result: applicable-blocked
+    version: null
+    evidence:
+      - SPECIFICATIONS.md
+      - docs/platform-integration-status.md
+    notes: Mesh platform identity, discovery, relationships, capabilities, dependencies, and events are applicable but not implemented.
+    capabilities: []
+    dependencies: []
+    published_events: []
+    consumed_events: []
+  identity:
+    result: applicable-blocked
+    version: null
+    evidence:
+      - SPECIFICATIONS.md
+      - docs/platform-integration-status.md
+      - docs/security.md
+    notes: Human, service, device, and agent Identity integration is applicable but not implemented. Metrics-local agent credentials remain a Development application authority and are not GoreeCloud Identity.
+
+health:
+  health_endpoint: /livez/
+  readiness_endpoint: /readyz/
+
+continuity:
+  backup:
+    required: true
+    requirements:
+      - Protect Metrics configuration, monitored-system records, agent identity and credential metadata, database state, and any historical telemetry classified as required for recovery.
+      - Keep reusable secret material outside ordinary source-controlled backup declarations and recover it only through approved protected mechanisms.
+  restore:
+    required: true
+    requirements:
+      - Validate Metrics restoration into an isolated environment before production qualification.
+      - Verify restored configuration, database state, required agent relationships, health/readiness behavior, and required historical telemetry for the exact release under test.
+  export:
+    required: true
+    requirements:
+      - Provide documented, bounded export of Metrics configuration and operational data where required without including reusable secrets merely because they exist internally.
+      - Distinguish current values, historical measurements, aggregated data, and metadata in future supported exports.
+  portability:
+    required: true
+    requirements:
+      - Avoid unnecessary proprietary persistence and export formats so important Metrics configuration and operational data remain recoverable if the application is redesigned or replaced.
+      - Keep the Metrics Agent protocol, telemetry schema, and storage boundaries versionable and replaceable under GoreeCloud-owned contracts.
+
+external_dependencies:
+  - name: Django
+    purpose: Development server, API, validation, and persistence framework.
+    required: true
+    version_constraint: 5.2.17
+
+compatibility:
+  platform_contract: '0.2'
+  glaze_ui_required: 1.1.0
+  requires:
+    - goreecloud-platform-contract==0.2
+  provides:
+    - goreecloud-metrics-api-v1
+    - goreecloud-metrics-telemetry-schema-v1
+
+evidence:
+  acceptance_tests: []
+  release: []
+
+conformance:
+  status: nonconformant
+  validated_at: null
+  evidence:
+    - README.md
+    - SPECIFICATIONS.md
+    - docs/platform-integration-status.md
+    - docs/security.md
+    - docs/recovery.md
+    - src/goreecloud_metrics/urls.py
+    - src/metrics/urls.py
+    - VERSION
+  blockers:
+    - GoreeCloud Metrics remains Development source and has no Stable or production-approved release.
+    - Production deployment, reverse-proxy/TLS acceptance, and target-environment transport evidence are incomplete.
+    - The Development Metrics Agent has no accepted production package, service lifecycle, sandbox, least-privilege deployment, update, rollback, or resource-use evidence.
+    - Production credential rotation, recovery, and secret-storage design are incomplete.
+    - GoreeCloud Identity integration and acceptance are incomplete.
+    - Wardveil Security integration and acceptance are incomplete.
+    - Privacy Shield adapter and acceptance are incomplete.
+    - Everkeep backup, restore, and recovery acceptance are incomplete.
+    - GoreeCloud Mesh integration and acceptance are incomplete.
+    - GoreeCloud Manager integration and acceptance are incomplete.
+    - Glaze UI user and administrative surface implementation is incomplete.
+    - Authorized human and administrative telemetry read APIs, production metrics storage, historical aggregation, alerting, export/import, portability acceptance, and advanced collectors remain incomplete.
