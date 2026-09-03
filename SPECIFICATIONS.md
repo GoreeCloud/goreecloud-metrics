@@ -120,9 +120,11 @@ All seven Integral Platform Systems have been evaluated for this slice:
 
 Notify, Inventory, and Monitor integration also remain planned where applicable.
 
-## Platform declaration discrepancy
+## Platform declaration
 
-The current Application and Service Production Readiness standard refers to a repository-owned `goreecloud.platform.yaml` as the common machine-readable record. The current GoreeCloud Platform Improvement Task List still records definition of that standard Platform Contract and manifest schema as unfinished. Metrics does not invent an application-local schema while those authoritative records disagree. This discrepancy remains a platform governance blocker to machine-readable Metrics conformance declaration.
+The shared GoreeCloud Platform Contract is now defined centrally at schema version `0.2`. Metrics carries the repository-root `goreecloud.platform.yaml` declaration governed by that shared schema and validates it through the central reusable workflow pinned by immutable commit SHA.
+
+The current declaration is intentionally `nonconformant`. It records Manager, Everkeep, Glaze UI, Mesh, and Identity as blocked; records Privacy Shield and Wardveil Security as migration-required because application-local groundwork exists without accepted platform integration; and contains no acceptance-test or release evidence. The manifest establishes machine-readable contract adoption only and does not upgrade source validation into platform-system acceptance, Stable eligibility, production deployment, or production readiness.
 
 ## Explicit limitations and blockers
 
