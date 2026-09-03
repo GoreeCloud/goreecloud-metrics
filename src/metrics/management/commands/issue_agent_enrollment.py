@@ -2,6 +2,7 @@
 
 from datetime import timedelta
 
+from django.core.exceptions import ValidationError
 from django.core.management.base import BaseCommand, CommandError
 
 from metrics.enrollment import EnrollmentError, issue_agent_enrollment
@@ -18,7 +19,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         try:
             system = MonitoredSystem.objects.get(pk=options["system_id"])
-        except (MonitoredSystem.DoesNotExist, ValueError):
+        except (MonitoredSystem.DoesNotExist, ValidationError, ValueError):
             raise CommandError("Unknown monitored system.") from None
 
         try:
