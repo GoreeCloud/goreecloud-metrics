@@ -6,6 +6,7 @@ on:
   push:
     branches:
       - main
+      - "feature/**"
       - "feat/**"
       - "fix/**"
 
@@ -40,6 +41,12 @@ jobs:
 
       - name: Compile Python source
         run: python -m compileall -q manage.py src tests scripts
+
+      - name: Verify committed migrations
+        run: python manage.py makemigrations --check --dry-run
+
+      - name: Apply development schema
+        run: python manage.py migrate --noinput
 
       - name: Run Django system checks
         run: python manage.py check
