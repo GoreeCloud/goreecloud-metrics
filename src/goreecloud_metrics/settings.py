@@ -42,6 +42,9 @@ USE_TZ = True
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# Bound request memory before endpoint-specific limits are applied.
+DATA_UPLOAD_MAX_MEMORY_SIZE = 64 * 1024
+
 # Baseline HTTP hardening. These are project-level controls only and do not constitute
 # Wardveil Security conformance or a production-readiness claim.
 SECURE_CONTENT_TYPE_NOSNIFF = True

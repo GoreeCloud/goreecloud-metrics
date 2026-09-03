@@ -87,8 +87,12 @@ def consume_agent_enrollment(
 ) -> EnrolledAgent:
     """Consume a one-time enrollment and issue the first hashed agent credential."""
 
+    if not isinstance(agent_version, str):
+        raise EnrollmentError("Enrollment could not be completed.")
     version = agent_version.strip()
     if not version or len(version) > 64:
+        raise EnrollmentError("Enrollment could not be completed.")
+    if not isinstance(secret, str) or not secret or len(secret) > 256:
         raise EnrollmentError("Enrollment could not be completed.")
 
     try:
@@ -107,7 +111,6 @@ def consume_agent_enrollment(
         enrollment.used_at is not None
         or enrollment.revoked_at is not None
         or enrollment.expires_at <= now
-        or not secret
         or not check_password(secret, enrollment.secret_hash)
     )
     if invalid:

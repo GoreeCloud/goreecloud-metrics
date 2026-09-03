@@ -2,48 +2,94 @@
 
 ## Status
 
-Development foundation. This document describes only architecture that exists in this repository or an explicitly identified next boundary. It is not a claim that the planned Metrics product is complete.
+Development source architecture for `0.1.0-dev.2`. This document describes implemented source behavior and explicit next boundaries. It is not a production-acceptance record.
 
-## Current implemented foundation
+## Implemented components
 
-The server/API foundation is a GoreeCloud-owned Django 5.2 application. It provides narrow liveness, readiness, and bounded service-status endpoints plus the first durable Metrics-owned system and agent identity domain. SQLite is used for development and test persistence/readiness validation only; a production metrics-storage engine has not been selected.
+### Metrics server
 
-Current source layout:
+The GoreeCloud-owned Django 5.2 application provides:
 
-- `src/goreecloud_metrics/` — project configuration and runtime entry points.
-- `src/metrics/` — Metrics-owned endpoints, system/agent persistence, and enrollment lifecycle logic.
-- `src/metrics/migrations/` — durable schema history for current development state.
-- `src/metrics/management/commands/` — local operator/development commands that avoid prematurely exposing an administrative HTTP surface.
-- `tests/` — source-level behavior and configuration validation.
-- `scripts/` — repository validation.
+- liveness, database-aware readiness, and bounded source status;
+- monitored-system and Metrics-local agent identity persistence;
+- one-time enrollment and agent credential persistence using password hashes;
+- one-time network enrollment;
+- authenticated telemetry intake;
+- strict telemetry validation and bounded Development retention.
 
-## System and agent domain
+SQLite is used only for Development/test persistence. Production storage remains undecided.
 
-`MonitoredSystem` is the durable Metrics-local identity for an authorized target. It carries a human-readable name plus bounded descriptive/role/environment/location fields, an optional external platform-identity reference, and a monitoring lifecycle state.
+### Development Metrics Agent
 
-`AgentIdentity` is one-to-one with a monitored system in the current design. This keeps initial ownership and revocation semantics simple while leaving the future collector/runtime implementation separate from the server domain model.
+`src/metrics_agent/` is a first-party outbound-only Python agent. It currently:
 
-`AgentEnrollment` stores one-time enrollment lifecycle metadata and a password hash only. `AgentCredential` stores hashed ongoing credential metadata so future rotation/revocation can retain history instead of overwriting identity evidence.
+- enrolls with a one-time credential;
+- stores the resulting per-agent credential in an owner-only Development state file;
+- requires HTTPS for non-loopback server connections;
+- collects the first Linux core resource sample;
+- submits once or continuously with a bounded configurable interval;
+- backs off on collection or network failures;
+- exposes no remote shell, administration port, or monitored-host listener.
 
-The enrollment service locks the target system and enrollment rows transactionally, bounds enrollment lifetime to at most 24 hours, revokes superseded unused enrollments, fails closed on invalid/expired/revoked/used credentials, creates exactly one agent identity, and returns plaintext enrollment/agent secrets only at their one-time issuance boundaries.
+### Telemetry protocol
 
-No network enrollment endpoint is exposed. This is intentional until transport authentication, abuse resistance, Identity/Wardveil boundaries, and agent protocol requirements are specified and tested.
+The version-1 payload is an intentionally strict fixed JSON contract. Unknown root or nested fields are rejected. Requests and responses are bounded, credentials are carried only in the machine authentication boundary, and sample UUIDs prevent duplicate persistence.
 
-## Native ownership boundary
+See [`agent-protocol.md`](agent-protocol.md).
 
-GoreeCloud owns the product architecture, API contract, data model, security/privacy decisions, UI integration, telemetry semantics, collection model, retention model, alerting behavior, recovery model, and release direction. Django is a narrow framework dependency, not the product architecture.
+## Data relationships
+
+```text
+MonitoredSystem
+  ├── AgentEnrollment (history)
+  └── AgentIdentity (one current Metrics-local identity)
+        ├── AgentCredential (history)
+        └── TelemetrySnapshot (bounded core samples)
+```
+
+Deletion uses protective relationships for identity/history-bearing records. Agent revocation is represented as state rather than deleting history.
+
+## Trust and authority boundaries
+
+- A one-time enrollment secret authorizes only the bounded enrollment operation.
+- An agent credential authenticates the Metrics-local agent to the telemetry endpoint; it is not a human/admin credential.
+- Metrics-local identity is not GoreeCloud Identity.
+- Source-level hashing, validation, TLS requirements, and revocation are application controls, not Wardveil acceptance.
+- Telemetry minimization and current retention logic are application-local privacy behavior, not approved Privacy Shield integration.
+- `platform_identity` is a future relationship reference and is not Mesh or Inventory authority.
+- No human telemetry read API is exposed until an appropriate authorization model exists.
+
+## Privacy-minimized first collector
+
+The initial sample is limited to resource measurements required for the first monitoring purpose. It excludes stable host/network identifiers and private workload/content data.
+
+This keeps the first telemetry path useful enough to validate collection and transport while avoiding premature collection of process, command, log, filesystem-content, packet-content, or detailed identity data.
+
+## Retention architecture
+
+The current source limits snapshot retention to 1–2160 hours with a 168-hour default. Successful ingestion prunes globally expired snapshots. `prune_telemetry` provides an explicit idle-period cleanup path.
+
+Historical aggregation, downsampling, backup classification, deletion guarantees, export, and production storage lifecycle remain unimplemented.
+
+## Network boundary
+
+The monitored host initiates communication. No inbound Metrics Agent listener is required.
+
+Development loopback HTTP is allowed. The agent rejects non-loopback HTTP, and server endpoints reject insecure requests when the server is configured as production. No target deployment, reverse proxy, certificate, firewall, or Wardveil transport acceptance is claimed.
 
 ## Next architecture boundaries
 
-The following remain unimplemented and require separate design, code, validation, and evidence:
+Major unimplemented boundaries include:
 
-- authenticated administrative API and authorization;
-- secure network agent-enrollment transport and agent authentication;
-- Metrics Agent implementation and telemetry transport;
-- current/historical metrics ingestion and storage;
-- alert evaluation;
-- Glaze UI 2.2.0 user interface;
-- Wardveil Security, Privacy Shield, Everkeep, Identity, Mesh, Notify, Inventory, Monitor, and Manager integrations;
-- backup/restore and production deployment architecture.
+- GoreeCloud Identity-backed human/service/device authentication and authorization;
+- accepted Wardveil, Privacy Shield, Everkeep, Mesh, Manager, and Glaze UI integration;
+- production Metrics Agent packaging, service sandbox, permissions, update/rollback, credential rotation, and recovery;
+- production metrics storage and retention jobs;
+- authorized telemetry query/read models and historical aggregation;
+- derived utilization calculations and additional collectors;
+- alert evaluation and Notify publishing;
+- backup, restore, export/import, portability, deployment, and production acceptance.
 
-No complete monitoring product is embedded as the permanent Metrics engine.
+## Platform-manifest governance discrepancy
+
+The current production-readiness standard references a repository-owned `goreecloud.platform.yaml`, while the current platform improvement task list still records the standard contract/schema definition as unfinished. Metrics does not create a competing schema until the authoritative platform contract is reconciled.

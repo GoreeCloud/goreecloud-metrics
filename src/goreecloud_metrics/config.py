@@ -7,6 +7,8 @@ import os
 from pathlib import Path
 
 _ALLOWED_ENVIRONMENTS = {"development", "test", "production"}
+_DEFAULT_RETENTION_HOURS = 168
+_MAX_RETENTION_HOURS = 24 * 90
 
 
 class ConfigurationError(RuntimeError):
@@ -17,12 +19,27 @@ def _csv(value: str) -> tuple[str, ...]:
     return tuple(item.strip() for item in value.split(",") if item.strip())
 
 
+def _retention_hours(value: str) -> int:
+    try:
+        hours = int(value)
+    except ValueError:
+        raise ConfigurationError(
+            "METRICS_TELEMETRY_RETENTION_HOURS must be an integer."
+        ) from None
+    if not 1 <= hours <= _MAX_RETENTION_HOURS:
+        raise ConfigurationError(
+            "METRICS_TELEMETRY_RETENTION_HOURS must be between 1 and 2160 hours."
+        )
+    return hours
+
+
 @dataclass(frozen=True)
 class RuntimeConfig:
     environment: str
     secret_key: str
     allowed_hosts: tuple[str, ...]
     sqlite_path: Path
+    telemetry_retention_hours: int
 
     @property
     def debug(self) -> bool:
@@ -62,9 +79,17 @@ def load_runtime_config(base_dir: Path) -> RuntimeConfig:
     if not sqlite_path.is_absolute():
         sqlite_path = base_dir / sqlite_path
 
+    retention = _retention_hours(
+        os.getenv(
+            "METRICS_TELEMETRY_RETENTION_HOURS",
+            str(_DEFAULT_RETENTION_HOURS),
+        ).strip()
+    )
+
     return RuntimeConfig(
         environment=environment,
         secret_key=secret_key,
         allowed_hosts=allowed_hosts,
         sqlite_path=sqlite_path,
+        telemetry_retention_hours=retention,
     )

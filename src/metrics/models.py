@@ -1,4 +1,4 @@
-"""Core GoreeCloud Metrics system and agent identity records."""
+"""Core GoreeCloud Metrics system, agent, and telemetry records."""
 
 from __future__ import annotations
 
@@ -81,7 +81,7 @@ class AgentEnrollment(models.Model):
 
 
 class AgentCredential(models.Model):
-    """Hashed long-lived agent credential metadata supporting future rotation."""
+    """Hashed agent credential metadata supporting rotation and revocation."""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     agent = models.ForeignKey(
@@ -97,3 +97,49 @@ class AgentCredential(models.Model):
 
     class Meta:
         ordering = ("-created_at",)
+
+
+class TelemetrySnapshot(models.Model):
+    """One bounded host resource sample accepted from an authenticated Metrics Agent."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    sample_id = models.UUIDField(unique=True)
+    agent = models.ForeignKey(
+        AgentIdentity,
+        on_delete=models.PROTECT,
+        related_name="telemetry_snapshots",
+    )
+    schema_version = models.PositiveSmallIntegerField(default=1)
+    sampled_at = models.DateTimeField()
+    received_at = models.DateTimeField(auto_now_add=True)
+    agent_version = models.CharField(max_length=64)
+
+    logical_processors = models.PositiveSmallIntegerField()
+    load_1 = models.FloatField()
+    load_5 = models.FloatField()
+    load_15 = models.FloatField()
+    cpu_user_ticks = models.PositiveBigIntegerField()
+    cpu_nice_ticks = models.PositiveBigIntegerField()
+    cpu_system_ticks = models.PositiveBigIntegerField()
+    cpu_idle_ticks = models.PositiveBigIntegerField()
+    cpu_iowait_ticks = models.PositiveBigIntegerField()
+    cpu_irq_ticks = models.PositiveBigIntegerField()
+    cpu_softirq_ticks = models.PositiveBigIntegerField()
+    cpu_steal_ticks = models.PositiveBigIntegerField()
+
+    memory_total_bytes = models.PositiveBigIntegerField()
+    memory_available_bytes = models.PositiveBigIntegerField()
+    swap_total_bytes = models.PositiveBigIntegerField()
+    swap_free_bytes = models.PositiveBigIntegerField()
+
+    root_filesystem_total_bytes = models.PositiveBigIntegerField()
+    root_filesystem_available_bytes = models.PositiveBigIntegerField()
+
+    network_rx_bytes = models.PositiveBigIntegerField()
+    network_tx_bytes = models.PositiveBigIntegerField()
+
+    class Meta:
+        ordering = ("-sampled_at",)
+        indexes = [
+            models.Index(fields=("agent", "-sampled_at"), name="metrics_agent_sample_idx"),
+        ]

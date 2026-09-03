@@ -1,11 +1,48 @@
-# Recovery Status
+# GoreeCloud Metrics — Recovery Status
 
-GoreeCloud Metrics does not yet have a production recovery model.
+GoreeCloud Metrics does not yet have an accepted production recovery model or Everkeep integration.
 
-The current development database can now contain monitored-system definitions, agent identity records, one-time enrollment metadata, and hashed agent credential metadata. Those records are development state only; there is no production database or accepted restoration procedure. Source code is version controlled, but source control alone is not considered recovery.
+## Material Development state now present
 
-Plaintext enrollment and agent credential secrets are intentionally not persisted, so a future recovery design must not assume they can or should be reconstructed from a database backup. Recovery and credential re-establishment/rotation are separate concerns that require an approved model.
+Source version `0.1.0-dev.2` can persist:
 
-Before production qualification, Metrics must define and validate Everkeep-governed backup and restoration for all required application state, including configuration, system definitions, identities/enrollment metadata, alert rules, integration configuration, required historical data, application version identity, and approved secret-recovery or credential-reissuance mechanisms.
+- monitored-system records;
+- Metrics-local agent identities;
+- one-time enrollment history;
+- agent credential hashes and lifecycle timestamps;
+- telemetry snapshots;
+- runtime configuration outside source;
+- local Development agent state containing the reusable per-agent credential.
 
-Restoration evidence does not exist yet.
+Telemetry snapshots use a bounded Development retention window, but retention is not backup.
+
+## Current recoverability
+
+- Source code is reconstructible from GitHub.
+- Database migrations are source-controlled and CI-applied.
+- Expired telemetry can be removed by ingestion pruning or `prune_telemetry`.
+- Agent revocation preserves server-side identity/credential history.
+
+No database backup/restore procedure is implemented or validated. No isolated restore test exists. No Everkeep contract is implemented. No accepted recovery exists for a lost local agent credential/state file, and the current source has no credential-rotation/re-enrollment workflow for that case.
+
+The local agent state file must not be copied into ordinary source control, logs, documentation, or unprotected backups merely to make recovery convenient.
+
+## Production recovery requirements still open
+
+Before production qualification, Metrics requires an approved and tested model for:
+
+- server configuration;
+- monitored-system and agent records;
+- credential lifecycle and secret recovery/replacement;
+- retention settings;
+- required historical telemetry classes;
+- database backup and restore;
+- deployment configuration;
+- integration configuration;
+- application and agent version identity;
+- production Metrics Agent configuration/state;
+- rollback after schema/application/agent changes;
+- privacy-preserving deletion and backup-retention behavior;
+- Everkeep integration and acceptance.
+
+Source CI is not recovery evidence.

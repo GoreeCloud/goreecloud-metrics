@@ -1,15 +1,17 @@
 # GoreeCloud Metrics — Current Benefits
 
-Benefits listed here are limited to what the current development foundation actually provides.
+Benefits listed here are limited to behavior implemented by the current Development source.
 
-## Development and operational benefits
+## Current development benefits
 
-- **Deterministic service identity:** the bounded status endpoint exposes the current source version and Development lifecycle without implying production readiness.
-- **Deployment-oriented health semantics:** separate liveness and database-aware readiness checks establish a clean foundation for future orchestration without exposing internal dependency details.
-- **Fail-closed configuration:** the process refuses to start without an explicit environment and secret key, reducing accidental execution with an implicit reusable secret.
-- **Clear production boundary:** production configuration requires an explicit host allowlist and stronger secret-key length while enabling HTTPS-oriented Django security settings.
-- **Documentation integrity:** repository validation ensures the mandatory GoreeCloud root product records exist and prevents active `.env` files from being accepted as ordinary source artifacts.
+- **First native end-to-end telemetry path:** a GoreeCloud-owned agent can enroll and submit a strictly bounded core Linux resource sample to the GoreeCloud-owned server.
+- **No monitored-host listener requirement:** the Development agent initiates outbound communication rather than opening a general remote-administration or telemetry port.
+- **Minimized first payload:** the core sample excludes hostnames, IP addresses, serial identifiers, process lists, environment variables, commands, logs, and file contents.
+- **Fail-closed credential handling:** one-time enrollment, per-agent hashed server credentials, revocation enforcement, and owner-only local state reduce accidental credential exposure.
+- **Bounded transport and input:** request-size limits, strict JSON shapes, timestamp bounds, numeric bounds, relationship checks, duplicate sample rejection, and HTTPS enforcement for non-loopback agent connections reduce malformed-input and transport risks.
+- **Bounded Development retention:** snapshots default to seven days and cannot be configured beyond 90 days in the current source; expired data is pruned during ingestion and can be pruned explicitly.
+- **Clear acceptance boundaries:** source documentation and platform status explicitly separate application-local controls from unimplemented GoreeCloud Identity, Wardveil Security, Privacy Shield, Everkeep, Mesh, Manager, and Glaze UI acceptance.
 
 ## Not yet available
 
-The major user and administrator benefits described by the planned Metrics product—resource visibility, hardware-health insight, historical analysis, alerts, capacity planning, integrated GoreeCloud operations, privacy governance, and validated recovery—depend on functionality that is not implemented yet and are therefore not claimed as current benefits here.
+User-facing resource visibility, historical charts, hardware-health insight, alerts, capacity planning, integrated GoreeCloud administration, accepted platform security/privacy identity, and validated recovery remain unavailable until their corresponding implementations and evidence exist.

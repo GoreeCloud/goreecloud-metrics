@@ -35,3 +35,24 @@ class RuntimeConfigTests(TestCase):
         with patch.dict(os.environ, environment, clear=True):
             config = load_runtime_config(Path("/tmp/metrics"))
         self.assertEqual(config.sqlite_path, Path("/tmp/metrics/test.sqlite3"))
+
+    def test_telemetry_retention_defaults_to_seven_days(self):
+        environment = {
+            "METRICS_ENV": "test",
+            "METRICS_SECRET_KEY": "test-only-key",
+        }
+        with patch.dict(os.environ, environment, clear=True):
+            config = load_runtime_config(Path("/tmp/metrics"))
+        self.assertEqual(config.telemetry_retention_hours, 168)
+
+    def test_telemetry_retention_is_bounded(self):
+        for value in ("0", "2161", "not-a-number"):
+            with self.subTest(value=value):
+                environment = {
+                    "METRICS_ENV": "test",
+                    "METRICS_SECRET_KEY": "test-only-key",
+                    "METRICS_TELEMETRY_RETENTION_HOURS": value,
+                }
+                with patch.dict(os.environ, environment, clear=True):
+                    with self.assertRaises(ConfigurationError):
+                        load_runtime_config(Path("/tmp/metrics"))

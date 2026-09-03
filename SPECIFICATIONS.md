@@ -2,93 +2,151 @@
 
 ## Status and authority
 
-This repository is the canonical source-code authority for GoreeCloud Metrics. The product is in active development. The broader planned capability set is maintained in the canonical GoreeCloud project specification and is not automatically implemented by appearing in that plan.
+This repository is the canonical source-code authority for GoreeCloud Metrics. The broader planned product scope remains in the canonical GoreeCloud Project Specification — Metrics and is not implemented merely because it is documented there.
 
-Current source version: `0.1.0-dev.1`.
+Current source version: `0.1.0-dev.2`.
+
+Acceptance state: **source implementation under Development validation only**. No production or Stable claim is made.
 
 ## Current implementation scope
 
-The current source remains intentionally narrow:
+The current source implements:
 
-- Python/Django server and API foundation;
-- liveness and database-aware readiness endpoints;
-- bounded service-status endpoint;
-- explicit runtime configuration validation;
-- baseline HTTP hardening;
-- monitored-system records;
-- Metrics-local agent identity records;
-- hashed one-time agent-enrollment records with bounded expiry and revocation state;
-- hashed agent credential metadata supporting future rotation/revocation;
-- internal issuance, enrollment-consumption, and revocation primitives;
-- local operator commands for system registration and enrollment-secret issuance;
-- automated source tests, migrations, and repository-structure validation.
+- Python 3.14 / Django `5.2.17` server and API foundation;
+- bounded liveness, database-aware readiness, and service-status endpoints;
+- explicit runtime configuration validation and baseline HTTP hardening;
+- monitored-system, Metrics-local agent identity, one-time enrollment, agent credential, and telemetry snapshot models;
+- local system registration and one-time enrollment issuance;
+- network consumption of one-time enrollment credentials;
+- authenticated telemetry intake using a per-agent credential;
+- a lightweight first-party Python Metrics Agent for Linux-style `/proc` environments;
+- core CPU/load, memory/swap, root-filesystem capacity, and aggregate non-loopback network counters;
+- strict telemetry schema, timestamp, numeric, relationship, and body-size validation;
+- duplicate sample rejection and monitoring-state/revocation enforcement;
+- configurable Development telemetry retention from 1 to 2160 hours, default 168 hours;
+- pruning on successful authenticated ingestion and the `prune_telemetry` maintenance command;
+- source tests, migrations, documentation validation, and exact-revision CI.
 
-SQLite is currently a development/test dependency only. No production metrics-storage engine has been selected.
+SQLite remains a development/test dependency only. No production metrics-storage engine has been selected.
 
-## Architecture decision
+## Native architecture decision
 
-The server/API foundation uses Django `5.2.17`, an exact-pinned mature framework already used by current native GoreeCloud applications. Django is used as a narrow foundation for HTTP routing, persistence, configuration, testing, and future first-party application capabilities. GoreeCloud Metrics owns the application architecture, data contracts, telemetry model, product behavior, security/privacy decisions, integration contracts, UI composition, and release direction.
+GoreeCloud Metrics owns its application architecture, agent protocol, telemetry schema, data model, validation, security/privacy decisions, integration boundaries, UI direction, and release lifecycle. Django is a narrow server/persistence framework dependency rather than the product architecture.
 
-The Metrics Agent architecture and implementation language are not selected by this foundation. That decision requires its own resource-efficiency, security, privilege, enrollment, portability, and update/rollback evaluation.
+The Development Metrics Agent is first-party GoreeCloud source implemented with the Python standard library. It initiates outbound requests to the Metrics server and does not expose an administrative or telemetry listener on the monitored host.
 
-The system/agent data model is deliberately independent of Docker, Proxmox, or any complete monitoring product. `platform_identity` is an optional relationship reference, not a replacement for authoritative GoreeCloud Inventory or Mesh records.
+The current collector scope is deliberately small so resource collection can be validated before privileged hardware, container, storage-health, GPU, or vendor-specific collectors are introduced.
 
-## Agent enrollment foundation
+## Enrollment and credential boundary
 
-The repository now contains development-level enrollment primitives with the following invariants:
+Current source invariants include:
 
-- enrollment secrets are generated from a cryptographically secure random source;
-- raw enrollment secrets are returned only to the issuing caller and are not persisted;
-- only password hashes are stored in enrollment records;
-- enrollment lifetimes must be greater than zero and no longer than 24 hours;
-- issuing a new enrollment revokes earlier unused enrollment records for the same system;
-- enrollment is one-time and fails closed when missing, expired, revoked, used, malformed, or secret-invalid;
-- successful enrollment creates exactly one Metrics-local agent identity and an initial agent credential whose plaintext secret is also returned only once and never persisted;
-- agent revocation preserves identity/credential history and revokes all active credential records.
+- enrollment secrets come from a cryptographically secure random source;
+- server persistence contains password hashes rather than plaintext enrollment or agent credential secrets;
+- enrollment credentials are one-time, expiring, and revocable;
+- enrollment lifetime is greater than zero and at most 24 hours;
+- issuing a new unused enrollment revokes earlier unused enrollment records for that system;
+- successful enrollment creates one Metrics-local agent identity and its initial credential;
+- agent revocation preserves identity/history and revokes active credentials;
+- malformed, expired, revoked, used, missing, or secret-invalid enrollment attempts fail closed;
+- plaintext credential material is returned only at issuance/consumption boundaries and must not be logged or committed.
 
-These primitives do **not** constitute a secure network enrollment protocol, GoreeCloud Identity integration, Wardveil Security conformance, certificate enrollment, deployed-agent authentication, transport security evidence, or production acceptance. No network enrollment endpoint is exposed yet.
+The Metrics-local identity model is not GoreeCloud Identity integration. The current credential scheme is not an accepted Wardveil service/device identity contract and is not represented as one.
 
-## API surface currently implemented
+## Agent transport boundary
+
+The first source protocol exposes:
 
 | Method | Path | Purpose |
 | --- | --- | --- |
 | GET | `/livez/` | Process liveness only |
 | GET | `/readyz/` | Database-aware readiness without dependency detail disclosure |
 | GET | `/api/v1/status/` | Bounded product/source/lifecycle/API-version identity |
+| POST | `/api/v1/agents/enroll/` | Consume one issued enrollment secret and return the initial agent credential once |
+| POST | `/api/v1/agents/telemetry/` | Accept one authenticated, bounded telemetry sample |
 
-No telemetry ingestion, network agent enrollment, or administrative API is implemented.
+Agent enrollment and telemetry responses are marked `Cache-Control: no-store`. The server source rejects insecure enrollment and telemetry requests when configured as production, while the Development agent itself refuses non-loopback HTTP URLs. No target-environment TLS/reverse-proxy deployment has been accepted, so this is source behavior rather than production transport evidence.
 
-## Runtime configuration currently implemented
+The machine endpoints use token authentication rather than browser sessions and are CSRF-exempt by design. This does not create a human administrative API.
 
-- `METRICS_ENV` — required; `development`, `test`, or `production`.
+## Telemetry schema version 1
+
+Each accepted snapshot contains only:
+
+- schema version, random sample UUID, sample timestamp, and agent source version;
+- logical processor count and 1/5/15-minute load averages;
+- aggregate CPU tick counters for user, nice, system, idle, I/O wait, IRQ, soft IRQ, and steal;
+- total/available memory and total/free swap;
+- total/available capacity for `/`;
+- aggregate received/transmitted byte counters excluding loopback.
+
+The initial agent does not collect or transmit hostname, IP address, hardware serial numbers, usernames, process lists, environment variables, command lines, file contents, logs, packet contents, or container metadata.
+
+Telemetry is accepted only for active agent identities attached to systems that are not paused or retired. The first accepted sample transitions a pending monitored-system record to active.
+
+## Retention
+
+`METRICS_TELEMETRY_RETENTION_HOURS` controls the current Development snapshot retention boundary:
+
+- default: 168 hours;
+- minimum: 1 hour;
+- maximum: 2160 hours (90 days).
+
+Successful telemetry ingestion removes expired snapshots globally. `python manage.py prune_telemetry` provides an explicit cleanup path for periods where no new telemetry arrives.
+
+This is an initial Development retention mechanism, not a final historical aggregation, deletion, export, backup, or production storage policy.
+
+## Runtime configuration
+
+- `METRICS_ENV` — required: `development`, `test`, or `production`.
 - `METRICS_SECRET_KEY` — required; production requires at least 50 characters.
-- `METRICS_ALLOWED_HOSTS` — required in production; optional safe loopback/test default outside production.
-- `METRICS_SQLITE_PATH` — optional development/test SQLite path; defaults to `metrics.sqlite3` relative to the repository root.
+- `METRICS_ALLOWED_HOSTS` — required in production.
+- `METRICS_SQLITE_PATH` — optional development/test SQLite path.
+- `METRICS_TELEMETRY_RETENTION_HOURS` — optional bounded snapshot-retention window; default 168.
 
-Reusable production secret values must not be stored in repository configuration or example files.
+Active `.env` files and reusable secrets must not be committed.
 
-## GoreeCloud platform requirements
+## Platform-system status
 
-The following are mandatory product requirements but are not yet implemented in Metrics:
+All seven Integral Platform Systems have been evaluated for this slice:
 
-- GoreeCloud Manager read-only integration where approved;
-- Privacy Shield;
+- **GoreeCloud Manager:** applicable later for approved read-only operational summaries; not implemented.
+- **Privacy Shield:** telemetry minimization and bounded retention concerns apply. Metrics source implements application-local minimization/retention behavior, but no approved Privacy Shield adapter/contract validation or acceptance exists.
+- **Wardveil Security:** authentication, credential protection, transport, validation, auditing, and exposure controls apply. Application-local controls exist, but current Wardveil integration/acceptance is not implemented.
+- **Everkeep:** configuration, system/agent records, required telemetry history, and secret-recovery procedures require a recovery model; not implemented or accepted.
+- **Glaze UI:** applicable to future user/admin surfaces; no Metrics UI exists yet.
+- **GoreeCloud Mesh:** applicable to platform identity, discovery, relationships, capabilities, and events; not implemented.
+- **GoreeCloud Identity:** applicable to human, service, device/agent, authentication, and authorization boundaries; not implemented. Metrics-local credentials remain a temporary application authority for this Development protocol.
+
+Notify, Inventory, and Monitor integration also remain planned where applicable.
+
+## Platform declaration discrepancy
+
+The current Application and Service Production Readiness standard refers to a repository-owned `goreecloud.platform.yaml` as the common machine-readable record. The current GoreeCloud Platform Improvement Task List still records definition of that standard Platform Contract and manifest schema as unfinished. Metrics does not invent an application-local schema while those authoritative records disagree. This discrepancy remains a platform governance blocker to machine-readable Metrics conformance declaration.
+
+## Explicit limitations and blockers
+
+Not implemented or accepted in this revision:
+
+- production deployment and target-environment transport;
+- reverse-proxy/TLS acceptance;
+- production agent package/service lifecycle, sandbox, least-privilege unit, update, rollback, or resource-use evidence;
+- credential rotation/recovery and production secret storage;
+- GoreeCloud Identity;
 - Wardveil Security;
-- Everkeep;
-- Glaze UI current Stable `2.2.0` for future user-facing UI;
+- Privacy Shield adapter acceptance;
+- Everkeep backup/restore;
 - GoreeCloud Mesh;
-- GoreeCloud Identity.
-
-GoreeCloud Notify, Inventory, and Monitor contextual integration are also planned product integrations where applicable.
-
-The Metrics-local agent identity and secret-hashing primitives must not be described as GoreeCloud Identity or Wardveil integration. They are an application-level fail-closed foundation required until those platform contracts are implemented and validated.
-
-See [`docs/platform-integration-status.md`](docs/platform-integration-status.md) for the current fail-closed status ledger.
-
-## Platform declaration
-
-A shared machine-readable GoreeCloud platform declaration/schema remains a platform-level planned capability. Metrics will adopt the approved schema once canonicalized; this repository does not define a competing local format.
+- GoreeCloud Manager;
+- Glaze UI;
+- authorized human/admin telemetry read APIs;
+- rate limiting and complete audit-event integration;
+- production metrics storage;
+- historical aggregation/downsampling;
+- CPU utilization derivation from successive counters;
+- container, GPU, SMART/NVMe/ZFS/RAID, temperature, fan, battery, UPS, or other advanced collectors;
+- alerts, Notify publishing, capacity analysis, export/import, and portability.
 
 ## Release boundary
 
-This source version is Development only. It has no Stable, deployment, production, backup/restore, platform-conformance, agent-runtime, telemetry, or application-level Glaze UI acceptance evidence. Those gates must be satisfied separately and against exact source revisions.
+`0.1.0-dev.2` may become source-validated after exact-head CI passes. Source validation does not establish integration validation, target-environment validation, security acceptance, recovery acceptance, production deployment, or Stable qualification.
