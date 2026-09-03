@@ -24,3 +24,9 @@ class HealthEndpointTests(TestCase):
         self.assertTrue(payload["version"].startswith("0.1.0-dev."))
         self.assertNotIn("database", payload)
         self.assertNotIn("secret", payload)
+
+    def test_baseline_security_headers_are_enforced(self):
+        response = self.client.get(reverse("livez"))
+        self.assertEqual(response.headers["X-Content-Type-Options"], "nosniff")
+        self.assertEqual(response.headers["Referrer-Policy"], "same-origin")
+        self.assertEqual(response.headers["X-Frame-Options"], "DENY")
