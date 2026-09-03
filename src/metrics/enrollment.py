@@ -8,6 +8,7 @@ import secrets
 import uuid
 
 from django.contrib.auth.hashers import check_password, make_password
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
 
@@ -96,7 +97,7 @@ def consume_agent_enrollment(
             .select_related("system")
             .get(pk=enrollment_id)
         )
-    except (AgentEnrollment.DoesNotExist, ValueError, TypeError):
+    except (AgentEnrollment.DoesNotExist, ValidationError, ValueError, TypeError):
         raise EnrollmentError("Enrollment could not be completed.") from None
 
     locked_system = MonitoredSystem.objects.select_for_update().get(pk=enrollment.system_id)
@@ -137,7 +138,7 @@ def revoke_agent(agent_id: uuid.UUID | str) -> None:
 
     try:
         agent = AgentIdentity.objects.select_for_update().get(pk=agent_id)
-    except (AgentIdentity.DoesNotExist, ValueError, TypeError):
+    except (AgentIdentity.DoesNotExist, ValidationError, ValueError, TypeError):
         raise EnrollmentError("Agent could not be revoked.") from None
 
     now = timezone.now()
