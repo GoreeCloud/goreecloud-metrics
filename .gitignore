@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# Django development state
+*.sqlite3
+staticfiles/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+!.env.template
+
+# Editors and OS
+.idea/
+.vscode/
+.DS_Store
+
+# Build and packaging
+build/
+dist/
+*.egg-info/
