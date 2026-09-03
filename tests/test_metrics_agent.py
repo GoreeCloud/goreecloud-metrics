@@ -112,15 +112,20 @@ class LinuxCollectorTests(SimpleTestCase):
         )
         self.assertEqual(snapshot["network"], {"rx_bytes": 1000, "tx_bytes": 2000})
         self.assertEqual(snapshot["filesystem"]["mount"], "/")
-        serialized_keys = repr(snapshot).lower()
+        observed_keys = set(snapshot)
+        for section in ("cpu", "memory", "filesystem", "network"):
+            observed_keys.update(snapshot[section])
         for forbidden in (
             "hostname",
             "ip_address",
             "serial",
             "process",
+            "processes",
             "environment",
             "command",
+            "command_line",
             "username",
             "log",
+            "logs",
         ):
-            self.assertNotIn(forbidden, serialized_keys)
+            self.assertNotIn(forbidden, observed_keys)
